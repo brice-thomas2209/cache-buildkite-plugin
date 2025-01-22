@@ -14,7 +14,7 @@ configuration:
         - all
   properties:
     backend:
-      type: string
+      type: array
     compression:
       type: string
       enum:

@@ -34,26 +34,30 @@ build_key "${MAX_LEVEL}" "${RESTORE_PATH}" >/dev/null # to validate the level
 
 SORTED_LEVELS=(file step branch pipeline all)
 
-for CURRENT_LEVEL in "${SORTED_LEVELS[@]}"; do
-  if [ "${CURRENT_LEVEL}" = 'file' ] && [ -z "$(plugin_read_config MANIFEST)" ]; then
-    continue
-  fi
+plugin_read_list_into_result BACKEND
 
-  KEY=$(build_key "${CURRENT_LEVEL}" "${RESTORE_PATH}" "${COMPRESS}")
-  if backend_exec exists "${KEY}"; then
-    echo "Cache hit at ${CURRENT_LEVEL} level, restoring ${RESTORE_PATH}..."
-
-    if compression_active; then
-      TEMP_PATH=$(mktemp)
-      backend_exec get "${KEY}" "${TEMP_PATH}"
-      uncompress "${TEMP_PATH}" "${RESTORE_PATH}"
-    else
-      backend_exec get "${KEY}" "${RESTORE_PATH}"
+for BACKEND_NAME in "${result[@]}"; do
+  for CURRENT_LEVEL in "${SORTED_LEVELS[@]}"; do
+    if [ "${CURRENT_LEVEL}" = 'file' ] && [ -z "$(plugin_read_config MANIFEST)" ]; then
+      continue
     fi
 
-    exit 0
-  elif [ "${CURRENT_LEVEL}" = "${MAX_LEVEL}" ]; then
-    echo "Cache miss up to ${CURRENT_LEVEL}-level, sorry"
-    break
-  fi
+    KEY=$(build_key "${CURRENT_LEVEL}" "${RESTORE_PATH}" "${COMPRESS}")
+    if backend_exec "${BACKEND_NAME}" exists "${KEY}"; then
+      echo "Cache hit at ${CURRENT_LEVEL} level for ${BACKEND_NAME} backend, restoring ${RESTORE_PATH}..."
+
+      if compression_active; then
+        TEMP_PATH=$(mktemp)
+        backend_exec "${BACKEND_NAME}" get "${KEY}" "${TEMP_PATH}"
+        uncompress "${TEMP_PATH}" "${RESTORE_PATH}"
+      else
+        backend_exec "${BACKEND_NAME}" get "${KEY}" "${RESTORE_PATH}"
+      fi
+
+      exit 0
+    elif [ "${CURRENT_LEVEL}" = "${MAX_LEVEL}" ]; then
+      echo "Cache miss up to ${CURRENT_LEVEL} level for ${BACKEND_NAME} backend, sorry"
+      break
+    fi
+  done
 done

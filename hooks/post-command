@@ -56,17 +56,21 @@ do_compress() {
   already_compressed='true'
 }
 
-for LEVEL in "${SAVE_LEVELS[@]}"; do
-  KEY=$(build_key "${LEVEL}" "${CACHE_PATH}" "${COMPRESS}")
+plugin_read_list_into_result BACKEND
 
-  if [ "$(plugin_read_config FORCE 'false')" != 'false' ] ||
-     ! backend_exec exists "${KEY}"; then
-    echo "Saving ${LEVEL}-level cache of ${CACHE_PATH}"
-    if needs_compression; then
-      do_compress
+for BACKEND_NAME in "${result[@]}"; do
+  for LEVEL in "${SAVE_LEVELS[@]}"; do
+    KEY=$(build_key "${LEVEL}" "${CACHE_PATH}" "${COMPRESS}")
+
+    if [ "$(plugin_read_config FORCE 'false')" != 'false' ] ||
+      ! backend_exec "${BACKEND_NAME}" exists "${KEY}"; then
+      echo "Saving ${LEVEL}-level cache of ${CACHE_PATH}"
+      if needs_compression; then
+        do_compress
+      fi
+      backend_exec "${BACKEND_NAME}" save "${KEY}" "${ACTUAL_PATH}"
+    else
+      echo "Cache of ${LEVEL} already exists, skipping"
     fi
-    backend_exec save "${KEY}" "${ACTUAL_PATH}"
-  else
-    echo "Cache of ${LEVEL} already exists, skipping"
-  fi
+  done
 done

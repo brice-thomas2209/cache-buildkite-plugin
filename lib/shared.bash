@@ -57,8 +57,7 @@ build_key() {
 }
 
 backend_exec() {
-  local BACKEND_NAME
-  BACKEND_NAME=$(plugin_read_config BACKEND 'fs')
+  local BACKEND_NAME="$1"
 
   PATH="${PATH}:${DIR}/../backends" "cache_${BACKEND_NAME}" "$@"
 }
